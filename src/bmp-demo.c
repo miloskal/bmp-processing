@@ -12,45 +12,45 @@
 #define BUFSIZE 4096
 
 
-void init_bmp(bmp_t *image){
+void
+init_bmp(bmp_t *image){
     image->color_tab = NULL;
     image->pixels = NULL;
 }
 
-unsigned int 
+unsigned int
 get_width(bmp_t *im){
     unsigned int *b = (unsigned int*)(im->header + 18);
     return *b;
 }
 
-unsigned int 
+unsigned int
 get_height(bmp_t *im){
     unsigned int *b = (unsigned int*)(im->header + 22);
     return *b;
 }
 
-unsigned int 
+unsigned int
 get_bit_depth(bmp_t *im){
     unsigned int *b = (unsigned int*)(im->header + 28);
     return *b;
 }
 
-bool 
+bool
 bmp_has_color_tab(bmp_t *im){
     unsigned int bd = get_bit_depth(im);
     return bd <= 8 ? true : false;
 }
 
-unsigned long long 
+unsigned long long
 get_color_tab_size(bmp_t *im){
     unsigned int bit_depth = get_bit_depth(im);
     return (1 << bit_depth) * 4;
 }
 
 
-/* Load bmp image. 
-*/
-void 
+/* Load bmp image. */
+void
 load_bmp(char *path, bmp_t *image)
 {
     FILE *f_in = NULL;
@@ -80,7 +80,7 @@ load_bmp(char *path, bmp_t *image)
     // copy color table if it's present
     if(bmp_has_color_tab(image)){
         n = get_color_tab_size(image);
-        printf("colortab size is %d\n", n);
+        printf("colortab size is %llu\n", n);
         image->color_tab = (char*)calloc(1, n);
         fread(buf, 1, n, f_in);
         memcpy(image->color_tab, buf, n);       
@@ -104,7 +104,7 @@ load_bmp(char *path, bmp_t *image)
 }
 
 
-void 
+void
 store_bmp(char *path, bmp_t *image)
 {
     FILE *f_out = NULL;
@@ -133,7 +133,7 @@ store_bmp(char *path, bmp_t *image)
     fclose(f_out);
 }
 
-void 
+void
 free_bmp(bmp_t im){
     if(im.color_tab)
         free(im.color_tab);
@@ -145,7 +145,7 @@ free_bmp(bmp_t im){
    zero-padding should be performed.
    Two pictures will visually look the same although not being 
    binary identical. */
-void 
+void
 copy_bmp(char *dest_path, char *src_path)
 {
     bmp_t image;
@@ -159,7 +159,7 @@ copy_bmp(char *dest_path, char *src_path)
     Perform 2D Discrete Convolution on image_in using 
     kernel mask and produce image_out.
 */
-void 
+void
 convolve(bmp_t *image_out, bmp_t *image_in, kernel_t *kernel)
 {
     int m = 0, n = 0, val = 0, 
@@ -196,20 +196,20 @@ convolve(bmp_t *image_out, bmp_t *image_in, kernel_t *kernel)
                 val = 255;
             else if(val < 0)
                 val = 0;
-           //image_out->pixels[i*img_wid + j] = image_in->pixels[i*img_wid + j];
+           // DEBUG: image_out->pixels[i*img_wid + j] = image_in->pixels[i*img_wid + j];
            image_out->pixels[i*img_wid + j] = (unsigned char)val;
         }
     }
 }
 
-void 
+void
 init_kernel(kernel_t *k)
 {
     k->data = NULL;
     k->width = k->height = 0;
 }
 
-int 
+int
 main(int argc, char **argv)
 {
     if(argc == 2 && (!strcmp(argv[1], "--help") || !strcmp(argv[1], "-h"))){
@@ -225,7 +225,7 @@ main(int argc, char **argv)
     
     char *bmp_name_in = argv[1], *bmp_name_out = argv[2];
     kernel_t kernel;
-    //init_kernel(&kernel);
+    init_kernel(&kernel);
 
     if(!strcmp(argv[3], "gaussian_blur_3x3")){
         kernel.width = kernel.height = 3;
@@ -248,7 +248,14 @@ main(int argc, char **argv)
         kernel.data = (const char*)SHARPEN_3x3;
     }
     else{
-        fatal("Invalid kernel\n");
+        fprintf(stderr,"Invalid kernel\n");
+        fprintf(stderr, "\nAvailable kernels:\n");
+        fprintf(stderr, "  -gaussian_blur_3x3\n"
+                        "  -gaussian_blur_5x5\n"
+                        "  -laplacian_5x5\n"
+                        "  -edge_detection_3x3\n"
+                        "  -sharpen_3x3\n");
+        exit(EXIT_FAILURE);
     }
 
     bmp_t image_in, image_out;
@@ -264,3 +271,4 @@ main(int argc, char **argv)
     
     return 0;
 }
+
